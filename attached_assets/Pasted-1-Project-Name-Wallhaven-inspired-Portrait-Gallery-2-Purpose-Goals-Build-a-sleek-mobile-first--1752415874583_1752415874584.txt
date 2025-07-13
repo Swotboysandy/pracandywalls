@@ -1,5 +1,5 @@
 1. Project Name
-Wallhaven-inspired Portrait Gallery
+Portrait Gallery
 
 2. Purpose & Goals
 Build a sleek, mobile-first wallpaper website that:

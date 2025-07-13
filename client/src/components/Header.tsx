@@ -37,7 +37,7 @@ export default function Header({ filter, onFilterChange }: HeaderProps) {
               <Image className="h-5 w-5 text-white" />
             </div>
             {!isMobile && (
-              <h1 className="text-xl font-bold">Wallhaven Gallery</h1>
+              <h1 className="text-xl font-bold">PracandyWalls</h1>
             )}
           </Link>
 

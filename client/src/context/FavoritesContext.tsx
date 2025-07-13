@@ -15,7 +15,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
   // Load favorites from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('wallhaven-favorites');
+    const saved = localStorage.getItem('pracandywalls-favorites');
     if (saved) {
       try {
         setFavorites(JSON.parse(saved));
@@ -27,7 +27,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
   // Save favorites to localStorage when changed
   useEffect(() => {
-    localStorage.setItem('wallhaven-favorites', JSON.stringify(favorites));
+    localStorage.setItem('pracandywalls-favorites', JSON.stringify(favorites));
   }, [favorites]);
 
   const addFavorite = (id: number) => {
