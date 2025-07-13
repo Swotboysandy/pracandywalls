@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Home, Heart, User } from 'lucide-react';
+import { Home, Heart, User } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import SearchBar from './SearchBar';
 import TagFilter from './TagFilter';
@@ -33,8 +33,12 @@ export default function Header({ filter, onFilterChange }: HeaderProps) {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Image className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 flex items-center justify-center">
+              <img 
+                src="https://instimage.vercel.app/logo/svg_logo_walls.svg" 
+                alt="Wallhaven Gallery Logo" 
+                className="h-10 w-10 object-contain"
+              />
             </div>
             {!isMobile && (
               <h1 className="text-xl font-bold">PracandyWalls</h1>
