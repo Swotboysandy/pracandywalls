@@ -1,0 +1,118 @@
+1. Project Name
+Wallhaven-inspired Portrait Gallery
+
+2. Purpose & Goals
+Build a sleek, mobile-first wallpaper website that:
+
+Loads thousands of portrait-oriented images from a remote CDN
+
+Presents them in a fluid, auto-fitting grid so the UI feels like a high-end gallery
+
+Offers core navigation (Home, Favorites, Profile, Filter/Search) on both desktop and mobile
+
+Provides smooth “Load More” pagination to avoid overloading the page
+
+Lets users download or “set” any wallpaper, and mark favorites (persisted in localStorage)
+
+Includes an image preview modal with file info and tag metadata
+
+Uses modern UI patterns: sticky header, mobile bottom nav, hover effects, gradient backgrounds, premium fonts/icons
+
+3. Key Features
+Responsive Grid
+
+Portrait-only cards auto-fit (min 120 px wide) across all breakpoints
+
+Fixed-height boxes with object-contain so each full image is visible
+
+Load-More Pagination
+
+Batches of 20 images load on demand; optionally infinite-scrollable
+
+Global Navigation
+
+Static top header (logo + menu + search + tag filters) on desktop and mobile
+
+Sticky bottom nav with icons on mobile only
+
+Favorites
+
+Users can heart any wallpaper; favorites stored in localStorage
+
+Dedicated Favorites page listing only marked images
+
+Image Modal
+
+Click any thumbnail to open a lightbox with full image, tags, download button
+
+Search & Tag Filtering
+
+Keyword search by filename
+
+Dropdown tag filter (e.g. “nature,” “night,” “anime”)
+
+Theming & UI
+
+Smooth purple→blue gradient background
+
+Premium “Poppins” font, consistent iconography via React-Icons
+
+Hover animations: scale-up, fade-in overlays, color transitions
+
+4. Tech Stack
+Next.js (App framework)
+
+React (UI library)
+
+Tailwind CSS (Utility-first styling)
+
+PostCSS + Autoprefixer
+
+React-Icons (Iconography)
+
+Vercel (deployment) or any Node-friendly host
+
+5. Architecture & File Structure
+arduino
+Copy
+Edit
+wallpaper-site/
+├── next.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── package.json
+└── src/
+    ├── context/
+    │   └── FavoritesContext.jsx        # global favorites state
+    ├── utils/
+    │   └── fetchWallpapers.js          # auto-built list + tag helpers
+    ├── styles/
+    │   └── globals.css                 # Tailwind directives + base styles
+    ├── components/
+    │   ├── Header.jsx                  # top navigation + search + tags
+    │   ├── BottomNav.jsx               # mobile bottom nav
+    │   ├── SearchBar.jsx               # keyword input
+    │   ├── TagFilter.jsx               # dropdown tag selector
+    │   ├── Gallery.jsx                 # filtered, paginated grid + modal state
+    │   ├── GalleryItem.jsx             # individual thumbnail + heart button
+    │   └── ImageModal.jsx              # full-screen lightbox
+    └── pages/
+        ├── _app.jsx                    # global providers + CSS
+        ├── _document.jsx               # custom font link
+        ├── index.jsx                   # home page (gallery)
+        ├── favorites.jsx               # favorites page
+        └── profile.jsx                 # user profile placeholder
+6. User Flow
+Landing: User arrives at home, sees the header and first 20 thumbnails.
+
+Explore: Scroll or “Load More” to reveal more.
+
+Search/Filter: Type keywords or choose tags to narrow results.
+
+Preview: Click any thumbnail to open modal, view tags, download or set as wallpaper.
+
+Favorite: Click heart button on any thumbnail to add to Favorites.
+
+View Favorites: Navigate to the Favorites page to see all saved images.
+
+Profile: Placeholder for future user info or settings.
