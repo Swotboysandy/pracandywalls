@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Heart, Download, Smartphone, Share2, Monitor, Phone, Coffee } from 'lucide-react';
+import { Heart, Download, Smartphone, Share2, Monitor, Phone, Coffee } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -114,25 +114,15 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
         </DialogHeader>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-4">
-              <h3 className="text-xl font-semibold">{wallpaper.filename}</h3>
-              <div className="flex space-x-2">
-                {wallpaper.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="bg-purple-500/20 text-purple-300">
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
+          <div className="flex items-center space-x-4 mb-4">
+            <h3 className="text-xl font-semibold">{wallpaper.filename}</h3>
+            <div className="flex space-x-2">
+              {wallpaper.tags.map(tag => (
+                <Badge key={tag} variant="secondary" className="bg-purple-500/20 text-purple-300">
+                  #{tag}
+                </Badge>
+              ))}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-white/70 hover:text-white"
-            >
-              <X className="h-6 w-6" />
-            </Button>
           </div>
 
           {/* Image */}
