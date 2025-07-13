@@ -1,11 +1,11 @@
-import React from 'react';
-import { X, Heart, Download, Smartphone } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { X, Heart, Download, Smartphone, Share2, Copy, Monitor, Phone } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Wallpaper } from '../types/wallpaper';
 import { useFavorites } from '../context/FavoritesContext';
-import { downloadWallpaper } from '../utils/wallpapers';
+import { downloadWallpaper, copyImageUrl, shareWallpaper, isMobileDevice } from '../utils/wallpapers';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageModalProps {
@@ -17,10 +17,14 @@ interface ImageModalProps {
 export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   if (!wallpaper) return null;
 
   const isLiked = isFavorite(wallpaper.id);
+  const isMobile = isMobileDevice();
 
   const handleFavoriteClick = () => {
     toggleFavorite(wallpaper.id);
@@ -30,24 +34,101 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
     });
   };
 
-  const handleDownload = () => {
-    downloadWallpaper(wallpaper);
-    toast({
-      title: "Download started",
-      description: "Your wallpaper is being downloaded",
-    });
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const success = await downloadWallpaper(wallpaper);
+      if (success) {
+        toast({
+          title: "Download started!",
+          description: "Your wallpaper is being downloaded to your device",
+        });
+      } else {
+        toast({
+          title: "Download initiated",
+          description: "If download doesn't start automatically, try right-clicking the image and selecting 'Save image as'",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Please try right-clicking the image and selecting 'Save image as'",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    setIsCopying(true);
+    try {
+      const success = await copyImageUrl(wallpaper);
+      if (success) {
+        toast({
+          title: "URL copied!",
+          description: "Image URL has been copied to your clipboard",
+        });
+      } else {
+        toast({
+          title: "Copy failed",
+          description: "Unable to copy URL. Please copy manually from the address bar",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Unable to access clipboard",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      const success = await shareWallpaper(wallpaper);
+      if (success) {
+        toast({
+          title: "Shared successfully!",
+          description: "Wallpaper has been shared",
+        });
+      } else {
+        // Fallback to copying URL
+        await handleCopyUrl();
+      }
+    } catch (error) {
+      toast({
+        title: "Share failed",
+        description: "Please try copying the URL instead",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleSetWallpaper = () => {
     toast({
-      title: "Set as wallpaper",
-      description: "Wallpaper setting is not supported in web browsers. Please download and set manually.",
+      title: "How to set as wallpaper",
+      description: isMobile 
+        ? "Download the image, then go to Settings > Wallpaper to set it" 
+        : "Download the image, then right-click on desktop > Properties > Background",
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-full max-h-[90vh] bg-black/90 border-white/10 text-white p-6">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Wallpaper Preview - {wallpaper.filename}</DialogTitle>
+          <DialogDescription>
+            Preview and download {wallpaper.filename}. Tags: {wallpaper.tags.join(', ')}
+          </DialogDescription>
+        </DialogHeader>
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
@@ -93,19 +174,43 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
               <Heart className={`mr-2 h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
               {isLiked ? 'Remove from Favorites' : 'Add to Favorites'}
             </Button>
+            
             <Button
               onClick={handleDownload}
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 font-semibold transition-all duration-300 transform hover:scale-105"
+              disabled={isDownloading}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
             >
               <Download className="mr-2 h-4 w-4" />
-              Download
+              {isDownloading ? 'Downloading...' : 'Download'}
             </Button>
+
+            {isMobile && (
+              <Button
+                onClick={handleShare}
+                disabled={isSharing}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                {isSharing ? 'Sharing...' : 'Share'}
+              </Button>
+            )}
+            
+            <Button
+              onClick={handleCopyUrl}
+              disabled={isCopying}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10 font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              {isCopying ? 'Copying...' : 'Copy URL'}
+            </Button>
+            
             <Button
               onClick={handleSetWallpaper}
               className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 font-semibold transition-all duration-300 transform hover:scale-105"
             >
               <Smartphone className="mr-2 h-4 w-4" />
-              Set as Wallpaper
+              How to Set
             </Button>
           </div>
 

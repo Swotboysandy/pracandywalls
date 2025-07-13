@@ -47,13 +47,75 @@ export function getAllTags(): string[] {
   return mockTags;
 }
 
-// Simulate download
-export function downloadWallpaper(wallpaper: Wallpaper): void {
-  const link = document.createElement('a');
-  link.href = wallpaper.url;
-  link.download = wallpaper.filename;
-  link.target = '_blank';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+// Device detection helper
+export function isMobileDevice(): boolean {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Enhanced download functionality
+export function downloadWallpaper(wallpaper: Wallpaper): Promise<boolean> {
+  return new Promise(async (resolve) => {
+    try {
+      // Try to fetch the image as blob for direct download
+      const response = await fetch(wallpaper.url);
+      const blob = await response.blob();
+      
+      // Create object URL from blob
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = wallpaper.filename;
+      link.style.display = 'none';
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      
+      resolve(true);
+    } catch (error) {
+      console.error('Blob download failed, trying fallback:', error);
+      
+      // Fallback to direct link download
+      try {
+        const link = document.createElement('a');
+        link.href = wallpaper.url;
+        link.download = wallpaper.filename;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        resolve(true);
+      } catch (fallbackError) {
+        console.error('Fallback download failed:', fallbackError);
+        resolve(false);
+      }
+    }
+  });
+}
+
+// Copy image URL to clipboard
+export function copyImageUrl(wallpaper: Wallpaper): Promise<boolean> {
+  return navigator.clipboard.writeText(wallpaper.url).then(() => true).catch(() => false);
+}
+
+// Share wallpaper (for mobile devices with Web Share API)
+export function shareWallpaper(wallpaper: Wallpaper): Promise<boolean> {
+  if (navigator.share) {
+    return navigator.share({
+      title: `Wallpaper: ${wallpaper.filename}`,
+      text: `Check out this amazing wallpaper!`,
+      url: wallpaper.url
+    }).then(() => true).catch(() => false);
+  }
+  return Promise.resolve(false);
 }
