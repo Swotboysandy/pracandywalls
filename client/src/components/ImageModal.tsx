@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Heart, Download, Smartphone, Share2, Copy, Monitor, Phone } from 'lucide-react';
+import { X, Heart, Download, Smartphone, Share2, Monitor, Phone, Coffee } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Wallpaper } from '../types/wallpaper';
 import { useFavorites } from '../context/FavoritesContext';
-import { downloadWallpaper, copyImageUrl, shareWallpaper, isMobileDevice } from '../utils/wallpapers';
+import { downloadWallpaper, shareWallpaper, isMobileDevice } from '../utils/wallpapers';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageModalProps {
@@ -18,7 +18,6 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
   const { isFavorite, toggleFavorite } = useFavorites();
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
   if (!wallpaper) return null;
@@ -60,31 +59,12 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
     }
   };
 
-  const handleCopyUrl = async () => {
-    setIsCopying(true);
-    try {
-      const success = await copyImageUrl(wallpaper);
-      if (success) {
-        toast({
-          title: "URL copied!",
-          description: "Image URL has been copied to your clipboard",
-        });
-      } else {
-        toast({
-          title: "Copy failed",
-          description: "Unable to copy URL. Please copy manually from the address bar",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Copy failed",
-        description: "Unable to access clipboard",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCopying(false);
-    }
+  const handleBuyMeCoffee = () => {
+    window.open('https://buymeacoffee.com/sandy_dumps', '_blank');
+    toast({
+      title: "Thank you! ☕",
+      description: "Your support helps keep this gallery running!",
+    });
   };
 
   const handleShare = async () => {
@@ -97,13 +77,16 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
           description: "Wallpaper has been shared",
         });
       } else {
-        // Fallback to copying URL
-        await handleCopyUrl();
+        toast({
+          title: "Share not available",
+          description: "Sharing is not supported on this device",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
         title: "Share failed",
-        description: "Please try copying the URL instead",
+        description: "Unable to share this wallpaper",
         variant: "destructive",
       });
     } finally {
@@ -196,13 +179,11 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
             )}
             
             <Button
-              onClick={handleCopyUrl}
-              disabled={isCopying}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+              onClick={handleBuyMeCoffee}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold transition-all duration-300 transform hover:scale-105"
             >
-              <Copy className="mr-2 h-4 w-4" />
-              {isCopying ? 'Copying...' : 'Copy URL'}
+              <Coffee className="mr-2 h-4 w-4" />
+              Buy me a coffee ☕
             </Button>
             
             <Button
