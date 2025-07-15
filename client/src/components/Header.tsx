@@ -35,7 +35,7 @@ export default function Header({ filter, onFilterChange }: HeaderProps) {
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 flex items-center justify-center">
               <img 
-                src="https://instimage.vercel.app/logo/svg_logo_walls.svg" 
+                src="/assets/logo.png" 
                 alt="Wallhaven Gallery Logo" 
                 className="h-10 w-10 object-contain"
               />
@@ -68,7 +68,6 @@ export default function Header({ filter, onFilterChange }: HeaderProps) {
 
           {/* Search and Filter */}
           <div className="flex items-center space-x-4">
-            {/* Desktop Search */}
             {!isMobile && (
               <SearchBar
                 value={filter.search}
@@ -76,8 +75,6 @@ export default function Header({ filter, onFilterChange }: HeaderProps) {
                 className="w-64"
               />
             )}
-
-            {/* Tag Filter */}
             <TagFilter
               value={filter.tag}
               onChange={handleTagChange}
@@ -85,7 +82,6 @@ export default function Header({ filter, onFilterChange }: HeaderProps) {
           </div>
         </div>
 
-        {/* Mobile Search */}
         {isMobile && (
           <div className="mt-4">
             <SearchBar
