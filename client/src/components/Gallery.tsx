@@ -35,7 +35,7 @@ export default function Gallery({ filter, showFavoritesOnly = false, favoriteIds
   }, [allWallpapers, filter, showFavoritesOnly, favoriteIds]);
 
   // Currently displayed wallpapers
-  const displayedWallpapers = filteredWallpapers.slice(0, loadedCount);
+ const displayedWallpapers = filteredWallpapers.slice(-loadedCount).reverse();
 
   const hasMore = loadedCount < filteredWallpapers.length;
 
