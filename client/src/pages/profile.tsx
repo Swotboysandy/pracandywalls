@@ -20,7 +20,7 @@ export default function Profile() {
       </div>
 
       <div className="max-w-2xl mx-auto">
-        <Card className="glass-bg border-white/10">
+        <Card className="bg-white/10 border border-white/20 backdrop-blur-md shadow-lg rounded-xl">
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -29,7 +29,7 @@ export default function Profile() {
               <h3 className="text-xl font-semibold mb-2 text-white">Guest User</h3>
               <p className="text-gray-400">Wallpaper enthusiast</p>
             </div>
-            
+
             <div className="space-y-6">
               <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
                 <div className="flex items-center space-x-3">
@@ -38,7 +38,7 @@ export default function Profile() {
                 </div>
                 <span className="font-semibold text-purple-400">{favorites.length}</span>
               </div>
-              
+
               <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <Download className="h-5 w-5 text-blue-400" />
@@ -46,7 +46,7 @@ export default function Profile() {
                 </div>
                 <span className="font-semibold text-blue-400">0</span>
               </div>
-              
+
               <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <Palette className="h-5 w-5 text-indigo-400" />
@@ -55,7 +55,7 @@ export default function Profile() {
                 <span className="font-semibold text-indigo-400">Dark</span>
               </div>
             </div>
-            
+
             <div className="mt-8 text-center">
               <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold">
                 <Settings className="mr-2 h-4 w-4" />
