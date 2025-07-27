@@ -60,10 +60,16 @@
   }
 
   body {
-    @apply font-sans antialiased text-white;
+    @apply font-sans antialiased;
     font-family: 'Poppins', sans-serif;
     min-height: 100vh;
-    background: linear-gradient(to bottom right, #1e3a8a, #581c87, #1e40af); /* Tailwind colors */
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  .dark body {
+    background: linear-gradient(to bottom right, var(--gradient-from), var(--gradient-via), var(--gradient-to));
+    color: white;
   }
 }
 
