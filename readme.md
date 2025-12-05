@@ -1,144 +1,81 @@
-# PracandyWalls – Development Guide
+# PracandyWalls - React Native Wallpaper App
 
-## Overview
+A premium, production-ready wallpaper application built with React Native (Expo).
 
-This is a modern, mobile-first wallpaper gallery application inspired by Wallhaven. It showcases portrait-oriented wallpapers in a sleek, responsive grid layout with advanced filtering, favorites functionality, and a premium user experience.
+## Features
+- **Dynamic Content**: Fetches high-quality wallpapers directly from GitHub.
+- **Masonry Grid**: Smooth, 2-column layout with virtually infinite scrolling feeling.
+- **Deep Search**: Search by filename or category.
+- **Favorites**: Save your best wallpapers locally.
+- **Offline Capable**: Caches images and data for offline viewing.
+- **Premium UI**: Dark mode, smooth animations (Reanimated), and pinch-to-zoom.
+- **Native Actions**: Set Wallpaper and Download to Gallery.
 
----
+## Prerequisites
+- Node.js (v18+)
+- npm or yarn
 
-## User Preferences
+## Installation
 
-- **Communication style**: Simple, everyday language
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
----
+2. **Start the App**
+   ```bash
+   npx expo start
+   ```
+   - Press `a` for Android Emulator.
+   - Press `i` for iOS Simulator.
+   - Scan QR code with Expo Go on physical device.
 
-## System Architecture
+## Build for Play Store
 
-### Frontend
+To generate a production APK/AAB:
 
-- **Framework**: React 18 + TypeScript  
-- **Build Tool**: Vite (fast dev & optimized builds)  
-- **UI**: Radix UI + shadcn/ui design system  
-- **Styling**: Tailwind CSS with custom CSS variables  
-- **Routing**: Wouter (lightweight client-side routing)  
-- **State**:  
-  - React Context API (favorites)  
-  - TanStack Query (server state, caching)  
-- **Design**: Mobile-first responsive grid; adaptive navigation  
+1. **Install EAS CLI**
+   ```bash
+   npm install -g eas-cli
+   ```
 
-### Backend
+2. **Login to Expo**
+   ```bash
+   eas login
+   ```
 
-- **Runtime**: Node.js + Express.js  
-- **Language**: TypeScript  
-- **Dev Mode**: Vite integration (HMR)  
-- **Prod Build**: ESBuild (server bundling)  
+3. **Configure Build**
+   ```bash
+   eas build:configure
+   ```
 
----
+4. **Build for Android**
+   ```bash
+   eas build -p android --profile production
+   ```
+   This will generate an AAB file for upload to the Play Store.
 
-## Data Storage
-
-- **Primary DB**: PostgreSQL via Neon (serverless)  
-- **ORM**: Drizzle ORM + Drizzle Kit (migrations)  
-- **Local Storage**: Browser `localStorage` (favorites)  
-- **In-Memory**: Dev fallback  
-
----
-
-## Key Features
-
-### Gallery
-
-1. **Grid**: Auto-fit portrait cards (min 120 px wide)  
-2. **Source**: External CDN + placeholder fallback  
-3. **Lazy Loading** & error handling  
-4. **Pagination**: “Load More” (20 per batch)  
-
-### Navigation
-
-- **Desktop**: Static header (logo, links, search, filters)  
-- **Mobile**: Sticky bottom nav (icons)  
-- **Responsive**: Conditional rendering by breakpoint  
-
-### UI/UX
-
-- **Design System**: shadcn/ui + Radix primitives  
-- **Theme**: Dark mode, purple→blue gradients  
-- **Typography**: Poppins (Google Fonts)  
-- **Effects**: Transitions, hover animations, glass morphism  
-
-### Search & Filter
-
-- **Text Search**: Realtime by filename/tags  
-- **Tag Filter**: Dropdown of categories  
-- **Combined**: Supports multi-criteria filtering  
-
----
-
-## Data Flow
-
-1. **Image List**  
-   - Auto-generated filenames: `img (1).jpg` … `img (N).jpg`  
-   - Mock tags per image  
-2. **Rendering**  
-   - Show first 20; “Load More” appends next batches  
-3. **Favorites**  
-   - React Context + `localStorage`  
-   - Heart icon toggles, immediate UI update  
-4. **Modal**  
-   - Click thumbnail → lightbox with full image/tags/download  
-
----
-
-## Dependencies
-
-### Core
-
-- React, Wouter, Express  
-- Drizzle ORM, Neon Database  
-- TanStack Query  
-- React Icons, Lucide React  
-
-### UI
-
-- Radix UI primitives  
-- shadcn/ui  
-- Tailwind CSS (+-merge, animate)  
-- Framer Motion  
-
-### Dev
-
-- Vite, ESBuild, TypeScript  
-- PostCSS + Autoprefixer  
-- cross-env  
-
----
+   To generate an APK for side-loading:
+   Update `eas.json`:
+   ```json
+   "build": {
+     "preview": {
+       "android": {
+         "buildType": "apk"
+       }
+     }
+   }
+   ```
+   Run: `eas build -p android --profile preview`
 
 ## Project Structure
+- `app/`: Expo Router screens (Home, Image, Onboarding, Privacy).
+- `src/components/`: Reusable UI components (MasonryGrid, WallpaperCard, etc).
+- `src/services/`: API logic (GitHub fetcher).
+- `src/store/`: Zustand state management.
+- `src/hooks/`: Custom hooks.
+- `src/theme/`: Color constants.
 
-```text
-wallpaper-site/
-├── next.config.js
-├── tailwind.config.js
-├── postcss.config.js
-├── package.json
-└── src/
-    ├── context/
-    │   └── FavoritesContext.tsx
-    ├── utils/
-    │   └── fetchWallpapers.ts
-    ├── styles/
-    │   └── globals.css
-    ├── components/
-    │   ├── Header.tsx
-    │   ├── BottomNav.tsx
-    │   ├── SearchBar.tsx
-    │   ├── TagFilter.tsx
-    │   ├── Gallery.tsx
-    │   ├── GalleryItem.tsx
-    │   └── ImageModal.tsx
-    └── pages/
-        ├── _app.tsx
-        ├── _document.tsx
-        ├── index.tsx
-        ├── favorites.tsx
-        └── profile.tsx
+## Customization
+- **Wallpapers**: Update `src/services/github.ts` to point to your own GitHub repository.
+- **Icons**: Replace files in `assets/images/` with your own branding.
