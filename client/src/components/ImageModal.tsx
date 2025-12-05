@@ -3,13 +3,15 @@ import { Heart, Download, Smartphone, Share2, Monitor, Phone, Coffee } from 'luc
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wallpaper } from '../types/wallpaper';
+import { Wallpaper as WallpaperType } from '../types/wallpaper';
 import { useFavorites } from '../context/FavoritesContext';
 import { downloadWallpaper, shareWallpaper, isMobileDevice } from '../utils/wallpapers';
 import { useToast } from '@/hooks/use-toast';
+import { Capacitor } from '@capacitor/core';
+import { Wallpaper } from 'capacitor-wallpaper';
 
 interface ImageModalProps {
-  wallpaper: Wallpaper | null;
+  wallpaper: WallpaperType | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -19,11 +21,13 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isSettingWallpaper, setIsSettingWallpaper] = useState(false);
 
   if (!wallpaper) return null;
 
   const isLiked = isFavorite(wallpaper.id);
   const isMobile = isMobileDevice();
+  const isNative = Capacitor.isNativePlatform();
 
   const handleFavoriteClick = () => {
     toggleFavorite(wallpaper.id);
@@ -94,13 +98,58 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
     }
   };
 
+  const convertBlobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const handleSetWallpaper = () => {
     toast({
       title: "How to set as wallpaper",
-      description: isMobile 
-        ? "Download the image, then go to Settings > Wallpaper to set it" 
+      description: isMobile
+        ? "Download the image, then go to Settings > Wallpaper to set it"
         : "Download the image, then right-click on desktop > Properties > Background",
     });
+  };
+
+  const handleSetWallpaperNative = async () => {
+    setIsSettingWallpaper(true);
+    try {
+      // 1. Fetch image
+      const response = await fetch(wallpaper.url);
+      const blob = await response.blob();
+
+      // 2. Convert to base64
+      const base64 = await convertBlobToBase64(blob);
+
+      // 3. Set wallpaper
+      // Remove data:image/jpeg;base64, prefix if present as some plugins expect raw base64
+      // But capacitor-wallpaper doc doesn't explicitly say. usually they handle it or need strict base64.
+      // Let's try passing the full string first, if that fails we might need to strip.
+      // Usually readAsDataURL includes the prefix. The plugin example often shows "data:image/png;base64,..."
+
+      await Wallpaper.setBase64({ base64 });
+
+      toast({
+        title: "Success! 🎉",
+        description: "Wallpaper updated successfully",
+      });
+    } catch (error) {
+      console.error("Wallpaper set failed", error);
+      toast({
+        title: "Error",
+        description: "Failed to set wallpaper directly. Please download it instead.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSettingWallpaper(false);
+    }
   };
 
   return (
@@ -127,8 +176,8 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
 
           {/* Image */}
           <div className="flex-1 flex items-center justify-center mb-4">
-            <img 
-              src={wallpaper.url} 
+            <img
+              src={wallpaper.url}
               alt={wallpaper.filename}
               className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
             />
@@ -138,16 +187,15 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
           <div className="flex flex-wrap gap-3 justify-center mb-4">
             <Button
               onClick={handleFavoriteClick}
-              className={`${
-                isLiked 
-                  ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700' 
+              className={`${isLiked
+                  ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'
                   : 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600'
-              } font-semibold transition-all duration-300 transform hover:scale-105`}
+                } font-semibold transition-all duration-300 transform hover:scale-105`}
             >
               <Heart className={`mr-2 h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
               {isLiked ? 'Remove from Favorites' : 'Add to Favorites'}
             </Button>
-            
+
             <Button
               onClick={handleDownload}
               disabled={isDownloading}
@@ -157,7 +205,7 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
               {isDownloading ? 'Downloading...' : 'Download'}
             </Button>
 
-            {isMobile && (
+            {isMobile && !isNative && (
               <Button
                 onClick={handleShare}
                 disabled={isSharing}
@@ -167,7 +215,7 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
                 {isSharing ? 'Sharing...' : 'Share'}
               </Button>
             )}
-            
+
             <Button
               onClick={handleBuyMeCoffee}
               className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold transition-all duration-300 transform hover:scale-105"
@@ -175,14 +223,25 @@ export default function ImageModal({ wallpaper, isOpen, onClose }: ImageModalPro
               <Coffee className="mr-2 h-4 w-4" />
               Buy me a coffee ☕
             </Button>
-            
-            <Button
-              onClick={handleSetWallpaper}
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 font-semibold transition-all duration-300 transform hover:scale-105"
-            >
-              <Smartphone className="mr-2 h-4 w-4" />
-              How to Set
-            </Button>
+
+            {isNative ? (
+              <Button
+                onClick={handleSetWallpaperNative}
+                disabled={isSettingWallpaper}
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 font-semibold transition-all duration-300 transform hover:scale-105"
+              >
+                <Smartphone className="mr-2 h-4 w-4" />
+                {isSettingWallpaper ? 'Setting...' : 'Set as Wallpaper'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSetWallpaper}
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 font-semibold transition-all duration-300 transform hover:scale-105"
+              >
+                <Smartphone className="mr-2 h-4 w-4" />
+                How to Set
+              </Button>
+            )}
           </div>
 
           {/* Metadata */}
