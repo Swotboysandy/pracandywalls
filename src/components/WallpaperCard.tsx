@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Colors } from '../theme/colors';
 import { Wallpaper } from '../types';
@@ -28,7 +28,7 @@ const WallpaperCard = ({ wallpaper, index }: Props) => {
     return (
         <Link href={`/image/${wallpaper.id}`} asChild>
             <Pressable style={styles.container}>
-                <Animated.View entering={FadeIn.delay(index * 50)} style={[styles.card, { height }]}>
+                <Animated.View entering={FadeIn.delay(index * 20)} style={[styles.card, { height }]}>
                     <Image
                         source={{ uri: wallpaper.url }}
                         style={styles.image}
@@ -36,9 +36,6 @@ const WallpaperCard = ({ wallpaper, index }: Props) => {
                         transition={500}
                         cachePolicy="memory-disk"
                     />
-                    <View style={styles.overlay}>
-                        <Text style={styles.title} numberOfLines={1}>{wallpaper.name}</Text>
-                    </View>
                 </Animated.View>
             </Pressable>
         </Link>

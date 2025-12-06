@@ -13,7 +13,7 @@ import { Colors } from '../src/theme/colors';
 
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
-    const { fetchWallpapers, filteredWallpapers, isLoading } = useStore();
+    const { fetchWallpapers, filteredWallpapers, isLoading, loadMoreWallpapers } = useStore();
     const wallpapers = filteredWallpapers();
     const { isFirstLaunch } = useFirstLaunch();
     const router = useRouter();
@@ -56,6 +56,7 @@ export default function HomeScreen() {
                     wallpapers={wallpapers}
                     onRefresh={fetchWallpapers}
                     refreshing={isLoading}
+                    onLoadMore={loadMoreWallpapers}
                 />
             )}
 

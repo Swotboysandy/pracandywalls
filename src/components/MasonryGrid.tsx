@@ -7,9 +7,10 @@ interface Props {
     wallpapers: Wallpaper[];
     onRefresh?: () => void;
     refreshing?: boolean;
+    onLoadMore?: () => void;
 }
 
-const MasonryGrid = ({ wallpapers, onRefresh, refreshing }: Props) => {
+const MasonryGrid = ({ wallpapers, onRefresh, refreshing, onLoadMore }: Props) => {
     // Split into columns
     const leftColumn: Wallpaper[] = [];
     const rightColumn: Wallpaper[] = [];
@@ -19,10 +20,21 @@ const MasonryGrid = ({ wallpapers, onRefresh, refreshing }: Props) => {
         else rightColumn.push(w);
     });
 
+    const handleScroll = (event: any) => {
+        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+        const isNearEnd = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+
+        if (isNearEnd && onLoadMore) {
+            onLoadMore();
+        }
+    };
+
     return (
         <ScrollView
             contentContainerStyle={styles.container}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={400}
             refreshControl={
                 <RefreshControl
                     refreshing={!!refreshing}

@@ -1,91 +1,69 @@
-import axios from 'axios';
 import { Wallpaper } from '../types';
 
-const REPO_OWNER = 'Swotboysandy';
-const REPO_NAME = 'instimage';
-const BRANCH = 'master';
-const BASE_RAW_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}`;
-const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${BRANCH}?recursive=1`;
+// Using Vercel deployment for images
+const BASE_URL = 'https://instimage.vercel.app/images';
+const TOTAL_IMAGES = 1600;
+const IMAGES_PER_PAGE = 20; // Load only 20 images at a time for smooth performance
 
-export const getWallpapers = async (): Promise<Wallpaper[]> => {
+export const getWallpapers = async (page: number = 1): Promise<Wallpaper[]> => {
     // Mock Data for Fallback
     const MOCK_WALLPAPERS: Wallpaper[] = [
         {
             id: '1',
             url: 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1000&auto=format&fit=crop',
-            name: 'Abstract Waves',
-            folder: 'Abstract',
-            path: 'mock/abstract_waves.jpg'
+            name: 'Wallpaper 1',
+            folder: 'Collection',
+            path: 'mock/wallpaper_1.jpg'
         },
         {
             id: '2',
             url: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop',
-            name: 'Mountain Peak',
-            folder: 'Nature',
-            path: 'mock/mountain_peak.jpg'
+            name: 'Wallpaper 2',
+            folder: 'Collection',
+            path: 'mock/wallpaper_2.jpg'
         },
         {
             id: '3',
             url: 'https://images.unsplash.com/photo-1707345512638-997d31a10eaa?q=80&w=1000&auto=format&fit=crop',
-            name: 'Neon City',
-            folder: 'City',
-            path: 'mock/neon_city.jpg'
-        },
-        {
-            id: '4',
-            url: 'https://images.unsplash.com/photo-1682695796954-bad25e45562d?q=80&w=1000&auto=format&fit=crop',
-            name: 'Desert Dunes',
-            folder: 'Nature',
-            path: 'mock/desert_dunes.jpg'
-        },
-        {
-            id: '5',
-            url: 'https://images.unsplash.com/photo-1706466710402-a16df5d3d4f4?q=80&w=1000&auto=format&fit=crop',
-            name: 'Minimal Dark',
-            folder: 'Minimal',
-            path: 'mock/minimal_dark.jpg'
-        },
-        {
-            id: '6',
-            url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1000&auto=format&fit=crop',
-            name: 'Liquid Paint',
-            folder: 'Abstract',
-            path: 'mock/liquid_paint.jpg'
+            name: 'Wallpaper 3',
+            folder: 'Collection',
+            path: 'mock/wallpaper_3.jpg'
         }
     ];
 
     try {
-        const response = await axios.get(API_URL);
-        const tree = response.data.tree;
+        // Calculate start and end indices for this page
+        const startIndex = (page - 1) * IMAGES_PER_PAGE + 1;
+        const endIndex = Math.min(page * IMAGES_PER_PAGE, TOTAL_IMAGES);
 
-        // Filter for files in the 'images' folder and valid extensions
-        const imageFiles = tree.filter((item: any) => {
-            const isFile = item.type === 'blob';
-            const isInImagesFolder = item.path.startsWith('images/');
-            const isImage = /\.(jpg|jpeg|png|webp)$/i.test(item.path);
-            return isFile && isInImagesFolder && isImage;
-        });
+        // Generate wallpapers array for this page only
+        const wallpapers: Wallpaper[] = [];
 
-        // Map to Wallpaper objects
-        const wallpapers = imageFiles.map((item: any) => {
-            const pathParts = item.path.split('/');
-            // images/Category/filename.jpg
-            const filename = pathParts[pathParts.length - 1];
-            const folder = pathParts.length > 2 ? pathParts[1] : 'Uncategorized';
+        for (let i = startIndex; i <= endIndex; i++) {
+            // Create categories based on number ranges for organization
+            let category = 'Collection';
+            if (i <= 200) category = 'Set 1';
+            else if (i <= 400) category = 'Set 2';
+            else if (i <= 600) category = 'Set 3';
+            else if (i <= 800) category = 'Set 4';
+            else if (i <= 1000) category = 'Set 5';
+            else if (i <= 1200) category = 'Set 6';
+            else category = 'Set 7';
 
-            return {
-                id: item.sha,
-                url: `${BASE_RAW_URL}/${item.path.replace(/ /g, '%20')}`, // Handle spaces
-                name: filename.replace(/\.(jpg|jpeg|png|webp)$/i, ''),
-                path: item.path,
-                folder: folder,
-            };
-        });
+            wallpapers.push({
+                id: `img-${i}`,
+                url: `${BASE_URL}/img%20(${i}).jpg`,
+                name: `Wallpaper ${i}`,
+                path: `images/img (${i}).jpg`,
+                folder: category,
+            });
+        }
 
-        return wallpapers.length > 0 ? wallpapers : MOCK_WALLPAPERS;
+        console.log(`✅ Generated ${wallpapers.length} wallpapers (page ${page}) from Vercel`);
+        return wallpapers;
 
     } catch (error) {
-        console.warn('Error fetching wallpapers, using mock data:', error);
+        console.warn('❌ Error generating wallpapers, using mock data:', error);
         return MOCK_WALLPAPERS;
     }
 };

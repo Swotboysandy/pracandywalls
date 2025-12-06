@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore';
 import { Colors } from '../theme/colors';
 
 const CategorySelector = () => {
-    const { wallpapers, searchTerm, setSearchTerm } = useStore();
+    const { wallpapers, selectedCategory, setSelectedCategory } = useStore();
 
     // Extract unique categories
     const categories = React.useMemo(() => {
@@ -14,11 +14,11 @@ const CategorySelector = () => {
     }, [wallpapers]);
 
     const handlePress = (category: string) => {
-        setSearchTerm(category);
+        setSelectedCategory(category);
     };
 
     const isSelected = (cat: string) => {
-        return searchTerm === cat;
+        return selectedCategory === cat;
     };
 
     return (

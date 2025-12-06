@@ -6,10 +6,15 @@ import { Wallpaper, WallpaperStore } from '../types';
 
 interface State extends WallpaperStore {
     searchTerm: string;
+    selectedCategory: string;
     setSearchTerm: (term: string) => void;
+    setSelectedCategory: (category: string) => void;
     filteredWallpapers: () => Wallpaper[];
     downloadedIds: string[];
     markDownloaded: (id: string) => void;
+    currentPage: number;
+    hasMorePages: boolean;
+    loadMoreWallpapers: () => Promise<void>;
 }
 
 export const useStore = create<State>()(
@@ -18,13 +23,32 @@ export const useStore = create<State>()(
             wallpapers: [],
             favorites: [],
             isLoading: false,
-            searchTerm: 'All', // Default to All
+            searchTerm: '', // Text search term
+            selectedCategory: 'All', // Default category
             downloadedIds: [],
+            currentPage: 1,
+            hasMorePages: true,
 
             fetchWallpapers: async () => {
+                set({ isLoading: true, currentPage: 1, wallpapers: [] });
+                const wallpapers = await getWallpapers(1);
+                set({ wallpapers, isLoading: false, hasMorePages: wallpapers.length === 20 });
+            },
+
+            loadMoreWallpapers: async () => {
+                const { currentPage, hasMorePages, isLoading } = get();
+                if (isLoading || !hasMorePages) return;
+
                 set({ isLoading: true });
-                const wallpapers = await getWallpapers();
-                set({ wallpapers, isLoading: false });
+                const nextPage = currentPage + 1;
+                const newWallpapers = await getWallpapers(nextPage);
+
+                set((state) => ({
+                    wallpapers: [...state.wallpapers, ...newWallpapers],
+                    currentPage: nextPage,
+                    isLoading: false,
+                    hasMorePages: newWallpapers.length === 20,
+                }));
             },
 
             toggleFavorite: (wallpaper) => {
@@ -45,21 +69,28 @@ export const useStore = create<State>()(
             },
 
             setSearchTerm: (term) => set({ searchTerm: term }),
+            setSelectedCategory: (category) => set({ selectedCategory: category }),
 
             filteredWallpapers: () => {
-                const { wallpapers, searchTerm, favorites } = get();
+                const { wallpapers, searchTerm, selectedCategory, favorites } = get();
 
-                if (searchTerm === 'Favorites') return favorites;
-
+                // Start with category filtering
                 let result = wallpapers;
 
-                if (searchTerm === 'Trending') {
-                    // Simple pseudo-random shuffle for "Trending" feel
-                    return [...wallpapers].sort(() => 0.5 - Math.random());
+                // Filter by selected category first
+                if (selectedCategory === 'Favorites') {
+                    result = favorites;
+                } else if (selectedCategory === 'Trending') {
+                    result = [...wallpapers].sort(() => 0.5 - Math.random());
+                } else if (selectedCategory && selectedCategory !== 'All') {
+                    result = wallpapers.filter(w =>
+                        w.folder.toLowerCase() === selectedCategory.toLowerCase()
+                    );
                 }
 
-                if (searchTerm && searchTerm !== 'All') {
-                    const lowerTerm = searchTerm.toLowerCase();
+                // Then apply text search if present
+                if (searchTerm && searchTerm.trim()) {
+                    const lowerTerm = searchTerm.toLowerCase().trim();
                     result = result.filter(w =>
                         w.name.toLowerCase().includes(lowerTerm) ||
                         w.folder.toLowerCase().includes(lowerTerm)
