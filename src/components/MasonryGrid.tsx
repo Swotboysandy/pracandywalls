@@ -1,17 +1,16 @@
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { Colors } from '../theme/colors';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useStore } from '../store/useStore';
 import { Wallpaper } from '../types';
-import WallpaperCard from './WallpaperCard';
+import { WallpaperCard } from './WallpaperCard';
 
 interface Props {
     wallpapers: Wallpaper[];
-    onRefresh?: () => void;
-    refreshing?: boolean;
-    onLoadMore?: () => void;
 }
 
-const MasonryGrid = ({ wallpapers, onRefresh, refreshing, onLoadMore }: Props) => {
-    // Split into columns
+const MasonryGrid = ({ wallpapers }: Props) => {
+    const { currentTheme } = useStore();
+
+    // Split into columns for masonry layout
     const leftColumn: Wallpaper[] = [];
     const rightColumn: Wallpaper[] = [];
 
@@ -20,28 +19,10 @@ const MasonryGrid = ({ wallpapers, onRefresh, refreshing, onLoadMore }: Props) =
         else rightColumn.push(w);
     });
 
-    const handleScroll = (event: any) => {
-        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-        const isNearEnd = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
-
-        if (isNearEnd && onLoadMore) {
-            onLoadMore();
-        }
-    };
-
     return (
         <ScrollView
             contentContainerStyle={styles.container}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={400}
-            refreshControl={
-                <RefreshControl
-                    refreshing={!!refreshing}
-                    onRefresh={onRefresh}
-                    tintColor={Colors.dark.primary}
-                />
-            }
         >
             <View style={styles.row}>
                 <View style={styles.column}>
@@ -62,10 +43,11 @@ const MasonryGrid = ({ wallpapers, onRefresh, refreshing, onLoadMore }: Props) =
 const styles = StyleSheet.create({
     container: {
         padding: 8,
-        paddingTop: 100, // Space for header
+        paddingBottom: 100,
     },
     row: {
         flexDirection: 'row',
+        gap: 8,
     },
     column: {
         flex: 1,
@@ -73,3 +55,4 @@ const styles = StyleSheet.create({
 });
 
 export default MasonryGrid;
+

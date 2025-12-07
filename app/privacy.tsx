@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { Colors } from '../src/theme/colors';
+import { colors } from '../src/theme/colors';
 
 export default function PrivacyScreen() {
     return (
@@ -25,7 +25,7 @@ export default function PrivacyScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.dark.background,
+        backgroundColor: colors.background,
     },
     content: {
         padding: 24,
@@ -33,17 +33,18 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: Colors.dark.text,
+        color: colors.text,
         marginBottom: 24,
         marginTop: 40,
     },
     header: {
         fontWeight: '700',
-        color: Colors.dark.text,
+        color: colors.text,
     },
     text: {
         fontSize: 16,
-        color: Colors.dark.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 24,
     }
 });
+

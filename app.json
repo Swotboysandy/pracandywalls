@@ -40,14 +40,7 @@
         {
           "photosPermission": "Allow PracandyWalls to save wallpapers to your photo library.",
           "savePhotosPermission": "Allow PracandyWalls to save wallpapers.",
-          "isAccessMediaLocationEnabled": true,
-          "androidPermissions": [
-            "READ_MEDIA_IMAGES",
-            "ACCESS_MEDIA_LOCATION"
-          ],
-          "mediaTypes": [
-            "photo"
-          ]
+          "isAccessMediaLocationEnabled": true
         }
       ],
       [

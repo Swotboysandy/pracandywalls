@@ -1,81 +1,185 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
-import { memo } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Colors } from '../theme/colors';
+import React, { useState } from 'react';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useStore } from '../store/useStore';
 import { Wallpaper } from '../types';
 
-interface Props {
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
+
+interface WallpaperCardProps {
     wallpaper: Wallpaper;
     index: number;
 }
 
-const WallpaperCard = ({ wallpaper, index }: Props) => {
-    // Random height aspect ratio for masonry feel (between 1.2 and 1.6)
-    // In a real app, we should get dimensions from the server/metadata.
-    // For now, we simulate aspect ratio based on ID hash or just random if unknown.
-    // Since we don't have dimensions, we'll use a fixed height or standard aspect.
-    // Actually, 'instimage' likely has variable sized images.
-    // We'll set a min height.
+export function WallpaperCard({ wallpaper, index }: WallpaperCardProps) {
+    const { currentTheme, toggleFavorite, isFavorite } = useStore();
+    const [imageHeight, setImageHeight] = useState(250);
+    const favorite = isFavorite(wallpaper.id);
 
-    const aspectRatio = 0.75 + (index % 3) * 0.1; // purely for masonry variance if needed, 
-    // but better to let the image determine size if possible, or fixed grid.
-    // Masonry usually implies variable height.
-    // Let's use a dynamic height based on index to fake it nicely.
-    const height = 200 + (index % 5) * 40;
+    const handleImageLoad = (event: any) => {
+        if (event.source?.width && event.source?.height) {
+            const aspectRatio = event.source.height / event.source.width;
+            setImageHeight(CARD_WIDTH * aspectRatio);
+        }
+    };
 
     return (
-        <Link href={`/image/${wallpaper.id}`} asChild>
-            <Pressable style={styles.container}>
-                <Animated.View entering={FadeIn.delay(index * 20)} style={[styles.card, { height }]}>
+        <Animated.View
+            entering={FadeInDown.delay(index * 50).springify()}
+            style={[styles.container, { height: imageHeight }]}
+        >
+            <Link href={`/image/${wallpaper.id}`} asChild>
+                <TouchableOpacity activeOpacity={0.9}>
                     <Image
                         source={{ uri: wallpaper.url }}
-                        style={styles.image}
+                        style={[styles.image, { height: imageHeight }]}
                         contentFit="cover"
-                        transition={500}
-                        cachePolicy="memory-disk"
+                        transition={300}
+                        onLoad={handleImageLoad}
                     />
-                </Animated.View>
-            </Pressable>
-        </Link>
+
+                    {/* Gradient Overlay */}
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.7)']}
+                        style={styles.gradient}
+                    />
+
+                    {/* Category Badge */}
+                    {wallpaper.category && (
+                        <View style={[styles.categoryBadge, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                            <Animated.Text
+                                entering={FadeIn.delay(index * 50 + 200)}
+                                style={styles.categoryText}
+                            >
+                                {wallpaper.category}
+                            </Animated.Text>
+                        </View>
+                    )}
+
+                    {/* Premium Badge */}
+                    {wallpaper.isPremium && (
+                        <View style={styles.premiumBadge}>
+                            <Ionicons name="diamond" size={14} color="#FFD700" />
+                        </View>
+                    )}
+
+                    {/* Stats */}
+                    <View style={styles.stats}>
+                        {wallpaper.views !== undefined && (
+                            <View style={styles.statItem}>
+                                <Ionicons name="eye-outline" size={14} color="#FFF" />
+                                <Animated.Text style={styles.statText}>
+                                    {formatNumber(wallpaper.views)}
+                                </Animated.Text>
+                            </View>
+                        )}
+                        {wallpaper.downloads !== undefined && (
+                            <View style={styles.statItem}>
+                                <Ionicons name="download-outline" size={14} color="#FFF" />
+                                <Animated.Text style={styles.statText}>
+                                    {formatNumber(wallpaper.downloads)}
+                                </Animated.Text>
+                            </View>
+                        )}
+                    </View>
+                </TouchableOpacity>
+            </Link>
+
+            {/* Favorite Button */}
+            <TouchableOpacity
+                style={styles.favoriteButton}
+                onPress={() => toggleFavorite(wallpaper)}
+                activeOpacity={0.7}
+            >
+                <Ionicons
+                    name={favorite ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={favorite ? '#FF375F' : '#FFF'}
+                />
+            </TouchableOpacity>
+        </Animated.View>
     );
+}
+
+const formatNumber = (num: number): string => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
 };
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 12,
-        marginHorizontal: 4,
-        flex: 1,
-    },
-    card: {
+        width: CARD_WIDTH,
         borderRadius: 16,
         overflow: 'hidden',
-        backgroundColor: Colors.dark.surface,
-        elevation: 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        marginBottom: 16,
+        backgroundColor: '#1A1A1A',
     },
     image: {
         width: '100%',
-        height: '100%',
+        borderRadius: 16,
     },
-    overlay: {
+    gradient: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        padding: 8,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        height: '50%',
     },
-    title: {
-        color: 'white',
-        fontSize: 12,
+    categoryBadge: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    categoryText: {
+        color: '#FFF',
+        fontSize: 11,
         fontWeight: '600',
-        fontFamily: 'System',
-    }
+        textTransform: 'uppercase',
+    },
+    premiumBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    stats: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        flexDirection: 'row',
+        gap: 12,
+    },
+    statItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    statText: {
+        color: '#FFF',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    favoriteButton: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
-
-export default memo(WallpaperCard);

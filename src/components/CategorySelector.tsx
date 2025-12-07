@@ -1,25 +1,32 @@
-import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useStore } from '../store/useStore';
-import { Colors } from '../theme/colors';
+import { Category } from '../types';
 
-const CategorySelector = () => {
-    const { wallpapers, selectedCategory, setSelectedCategory } = useStore();
+const categories: Category[] = [
+    'all',
+    'trending',
+    'abstract',
+    'nature',
+    'landscape',
+    'art',
+    '4k',
+    'sports',
+    'architecture',
+    'marvel',
+    'neon',
+    'minimal',
+    'space',
+    'cars',
+];
 
-    // Extract unique categories
-    const categories = React.useMemo(() => {
-        const raw = wallpapers.map(w => w.folder);
-        // Add hardcoded categories
-        return ['All', 'Trending', 'Favorites', ...new Set(raw)];
-    }, [wallpapers]);
+interface CategorySelectorProps {
+    selectedCategory: Category;
+    onSelectCategory: (category: Category) => void;
+}
 
-    const handlePress = (category: string) => {
-        setSelectedCategory(category);
-    };
-
-    const isSelected = (cat: string) => {
-        return selectedCategory === cat;
-    };
+export function CategorySelector({ selectedCategory, onSelectCategory }: CategorySelectorProps) {
+    const { currentTheme } = useStore();
 
     return (
         <ScrollView
@@ -27,48 +34,61 @@ const CategorySelector = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.container}
         >
-            {categories.map((cat) => (
-                <TouchableOpacity
-                    key={cat}
-                    style={[styles.chip, isSelected(cat) && styles.chipSelected]}
-                    onPress={() => handlePress(cat)}
-                >
-                    <Text style={[styles.text, isSelected(cat) && styles.textSelected]}>
-                        {cat}
-                    </Text>
-                </TouchableOpacity>
-            ))}
+            {categories.map((category, index) => {
+                const isSelected = selectedCategory === category;
+
+                return (
+                    <Animated.View
+                        key={category}
+                        entering={FadeInRight.delay(index * 30).springify()}
+                    >
+                        <TouchableOpacity
+                            onPress={() => onSelectCategory(category)}
+                            style={[
+                                styles.chip,
+                                {
+                                    backgroundColor: isSelected
+                                        ? currentTheme.colors.accent
+                                        : currentTheme.colors.surface,
+                                    borderColor: isSelected
+                                        ? currentTheme.colors.accent
+                                        : currentTheme.colors.border,
+                                },
+                            ]}
+                            activeOpacity={0.7}
+                        >
+                            <Text
+                                style={[
+                                    styles.text,
+                                    {
+                                        color: isSelected ? '#FFFFFF' : currentTheme.colors.text,
+                                        fontWeight: isSelected ? '700' : '500',
+                                    },
+                                ]}
+                            >
+                                {category.charAt(0).toUpperCase() + category.slice(1)}
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                );
+            })}
         </ScrollView>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 12,
-        paddingBottom: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         gap: 8,
     },
     chip: {
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    chipSelected: {
-        backgroundColor: Colors.dark.primary,
-        borderColor: Colors.dark.primary,
+        borderWidth: 1.5,
     },
     text: {
-        color: Colors.dark.textSecondary,
         fontSize: 14,
-        fontWeight: '500',
-    },
-    textSelected: {
-        color: '#000', // Dark text on light primary
-        fontWeight: '700',
     },
 });
-
-export default CategorySelector;

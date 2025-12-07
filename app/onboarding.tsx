@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useFirstLaunch } from '../src/hooks/useFirstLaunch';
-import { Colors } from '../src/theme/colors';
+import { colors } from '../src/theme/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     button: {
-        backgroundColor: Colors.dark.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 16,
         paddingHorizontal: 32,
         borderRadius: 30,

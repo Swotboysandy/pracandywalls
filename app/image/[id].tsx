@@ -1,18 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { Image } from 'expo-image';
-import * as IntentLauncher from 'expo-intent-launcher';
-import * as MediaLibrary from 'expo-media-library';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { Alert, Dimensions, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, NativeModules, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useStore } from '../../src/store/useStore';
-import { Colors } from '../../src/theme/colors';
+import { colors } from '../../src/theme/colors';
 
 const { width, height } = Dimensions.get('window');
+const { WallpaperModule } = NativeModules;
 
 export default function ImageScreen() {
     const { id } = useLocalSearchParams();
@@ -21,14 +20,82 @@ export default function ImageScreen() {
     const wallpaper = wallpapers.find(w => w.id === id) || favorites.find(f => f.id === id);
 
     const [downloading, setDownloading] = useState(false);
-    const [showPreview, setShowPreview] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState('');
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [successVisible, setSuccessVisible] = useState(false);
 
-    // Animation values
+    // SUCCESS UI COMPONENT
+    const renderSuccessOverlay = () => {
+        if (!successVisible) return null;
+        return (
+            <View style={[StyleSheet.absoluteFill, { zIndex: 200, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+                <View style={{ width: 180, height: 180, backgroundColor: '#1A1A1A', borderRadius: 24, justifyContent: 'center', alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: '#333' }}>
+                    <Ionicons name="checkmark-circle" size={64} color={colors.accent} />
+                    <Text style={{ color: 'white', marginTop: 16, fontSize: 18, fontWeight: 'bold' }}>Success!</Text>
+                    <Text style={{ color: '#888', marginTop: 4, fontSize: 14 }}>Wallpaper Updated</Text>
+                </View>
+            </View>
+        );
+    };
+
+    // PREVIEW UI COMPONENTS
+    const renderPreviewOverlay = () => {
+        if (!previewVisible) return null;
+        return (
+            <View style={[StyleSheet.absoluteFill, { zIndex: 100, justifyContent: 'space-between' }]}>
+                {/* Status Bar / Clock Area */}
+                <View style={{ paddingTop: 60, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 4 }}>12:00</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <Ionicons name="wifi" size={16} color="white" />
+                        <Ionicons name="battery-full" size={16} color="white" />
+                    </View>
+                </View>
+
+                {/* Simulated Home Screen Icons */}
+                <View style={{ marginBottom: 200, flexDirection: 'row', justifyContent: 'space-evenly', width: '100%', paddingHorizontal: 20 }}>
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <View key={i} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
+                    ))}
+                </View>
+
+                {/* Action Buttons Bottom Sheet */}
+                <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>Set Wallpaper</Text>
+
+                    {downloading ? (
+                        <View style={{ padding: 30, alignItems: 'center' }}>
+                            <ActivityIndicator size="large" color={colors.accent} />
+                            <Text style={{ color: '#888', marginTop: 10 }}>Applied...</Text>
+                        </View>
+                    ) : (
+                        <View style={{ gap: 12 }}>
+                            <TouchableOpacity onPress={() => confirmSetWallpaper('home')} style={styles.optionButton}>
+                                <Ionicons name="home-outline" size={20} color="white" style={{ marginRight: 10 }} />
+                                <Text style={styles.optionText}>Home Screen</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => confirmSetWallpaper('lock')} style={styles.optionButton}>
+                                <Ionicons name="lock-closed-outline" size={20} color="white" style={{ marginRight: 10 }} />
+                                <Text style={styles.optionText}>Lock Screen</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => confirmSetWallpaper('both')} style={styles.optionButton}>
+                                <Ionicons name="phone-portrait-outline" size={20} color="white" style={{ marginRight: 10 }} />
+                                <Text style={styles.optionText}>Both Screens</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={() => setPreviewVisible(false)} style={[styles.optionButton, { backgroundColor: '#222', marginTop: 8 }]}>
+                                <Text style={[styles.optionText, { color: '#FF4444' }]}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+            </View>
+        );
+    };
+
     const scale = useSharedValue(1);
     const savedScale = useSharedValue(1);
 
-    // Pinch Gesture
     const pinch = Gesture.Pinch()
         .onUpdate((e) => {
             scale.value = savedScale.value * e.scale;
@@ -46,94 +113,91 @@ export default function ImageScreen() {
 
     const isFav = wallpaper ? favorites.some(f => f.id === wallpaper.id) : false;
 
+    // DOWNLOAD: Uses standard Expo Share (Reliable fallback)
     const handleDownload = async () => {
         if (!wallpaper) return;
-
-        // Request Permission
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission needed', 'We need storage permission to save wallpapers.');
-            return;
-        }
-
-        const fs = FileSystem as any;
-        if (!fs.documentDirectory) {
-            Alert.alert('Error', 'Device storage not available.');
-            return;
-        }
-
         setDownloading(true);
-        setDownloadProgress('Downloading...');
+        setDownloadProgress('Starting...');
+
         try {
-            const fileUri = fs.documentDirectory + wallpaper.id + '.jpg';
-            const { uri } = await FileSystem.downloadAsync(wallpaper.url, fileUri);
+            const targetDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+            if (!targetDir) throw new Error('Storage unavailable on device');
 
-            setDownloadProgress('Saving to gallery...');
-            await MediaLibrary.createAssetAsync(uri);
+            const filename = `wall_${wallpaper.id.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+            const fileUri = targetDir + filename;
 
-            // Track download
-            const { markDownloaded } = useStore.getState();
-            markDownloaded(wallpaper.id);
+            setDownloadProgress('Downloading...');
 
-            setDownloadProgress('');
-            Alert.alert('✅ Downloaded!', 'Wallpaper saved to your gallery.', [
-                { text: 'OK' },
-                { text: 'Set as Wallpaper', onPress: () => setShowPreview(true) }
-            ]);
-        } catch (e) {
-            console.error('Download error:', e);
-            setDownloadProgress('');
-            Alert.alert('Download Failed', 'Please check your internet connection and try again.');
+            try {
+                const info = await FileSystem.getInfoAsync(fileUri);
+                if (info.exists) await FileSystem.deleteAsync(fileUri);
+            } catch { }
+
+            const downloadRes = await FileSystem.downloadAsync(wallpaper.url, fileUri);
+
+            if (downloadRes.status !== 200) throw new Error(`Download failed with status ${downloadRes.status}`);
+
+            setDownloadProgress('Saving...');
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(downloadRes.uri, {
+                    dialogTitle: 'Save to Gallery',
+                    mimeType: 'image/jpeg',
+                    UTI: 'public.jpeg'
+                });
+            } else {
+                Alert.alert('Saved', 'Image saved to: ' + fileUri);
+            }
+
+        } catch (e: any) {
+            console.error('Download Error:', e);
+            Alert.alert('Download Error', e.message || 'Check your internet or storage permissions.');
         } finally {
             setDownloading(false);
+            setDownloadProgress('');
         }
     };
 
-    const handleSetWallpaper = async (option: 'home' | 'lock' | 'both') => {
-        const fs = FileSystem as any;
-        if (!wallpaper || !fs.documentDirectory) return;
+    // 1. Trigger Preview
+    const handleSetWallpaper = () => {
+        setPreviewVisible(true);
+    };
 
-        setShowPreview(false);
-        setDownloading(true);
-        setDownloadProgress('Preparing...');
+    // 2. Actually Set Wallpaper (Called from Preview)
+    const confirmSetWallpaper = async (screenType: 'home' | 'lock' | 'both') => {
+        if (!wallpaper) return;
+
+        setDownloading(true); // Shows spinner in preview
+        setDownloadProgress('Setting...');
 
         try {
-            const fileUri = fs.documentDirectory + wallpaper.id + '.jpg';
+            if (WallpaperModule) {
+                console.log(`Setting wallpaper on ${screenType}...`);
 
-            setDownloadProgress('Downloading...');
-            const { uri } = await FileSystem.downloadAsync(wallpaper.url, fileUri);
+                // Artificial delay to let the spinner show (feels better)
+                await new Promise(r => setTimeout(r, 500));
 
-            if (Platform.OS === 'android') {
-                setDownloadProgress('Setting wallpaper...');
-                const contentUri = await FileSystem.getContentUriAsync(uri);
+                await WallpaperModule.setWallpaper(wallpaper.url, screenType);
 
-                await IntentLauncher.startActivityAsync('android.intent.action.SET_WALLPAPER', {
-                    data: contentUri,
-                    type: 'image/jpeg',
-                    flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-                    category: 'android.intent.category.DEFAULT',
-                });
+                // Show Success UI
+                setPreviewVisible(false);
+                setSuccessVisible(true);
 
-                setDownloadProgress('');
+                // Hide Success UI after 2 seconds
+                setTimeout(() => {
+                    setSuccessVisible(false);
+                }, 2000);
+
             } else {
-                setDownloadProgress('Opening share...');
-                await Sharing.shareAsync(uri, {
-                    mimeType: 'image/jpeg',
-                    dialogTitle: 'Set as Wallpaper'
-                });
-                setDownloadProgress('');
+                console.warn("WallpaperModule not found");
+                Alert.alert('Error', 'Native Module not found. Please rebuild app.');
             }
         } catch (e: any) {
-            console.error('Set wallpaper error:', e);
-            setDownloadProgress('');
-
-            if (e.message?.includes('User cancelled')) {
-                return;
-            }
-
-            Alert.alert('Could not set wallpaper', 'Please download the wallpaper and set it manually from your gallery.');
+            console.error('Native Wallpaper Error:', e);
+            Alert.alert('Error', 'Failed to set wallpaper: ' + e.message);
         } finally {
             setDownloading(false);
+            setDownloadProgress('');
         }
     };
 
@@ -141,115 +205,64 @@ export default function ImageScreen() {
         return (
             <View style={styles.container}>
                 <Text style={{ color: 'white' }}>Wallpaper not found</Text>
-                <Link href="/" style={{ marginTop: 20, color: Colors.dark.primary }}>Go Back</Link>
+                <Link href="/" style={{ marginTop: 20, color: colors.accent }}>Go Back</Link>
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
+            {/* Show Overlay if Preview Mode is ON */}
+            {renderPreviewOverlay()}
+            {renderSuccessOverlay()}
+
             <GestureDetector gesture={pinch}>
                 <Animated.View style={[styles.imageContainer, animatedStyle]}>
                     <Image
                         source={{ uri: wallpaper.url }}
                         style={styles.image}
-                        contentFit="contain"
+                        contentFit={previewVisible ? "cover" : "contain"} // Cover when previewing (full bleed)
                         transition={300}
                     />
                 </Animated.View>
             </GestureDetector>
 
-            {/* Controls Overlay */}
-            <View style={styles.controls}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-
-                <View style={styles.actionRow}>
-                    <TouchableOpacity onPress={() => toggleFavorite(wallpaper)} style={styles.iconButton}>
-                        <Ionicons name={isFav ? "heart" : "heart-outline"} size={26} color={isFav ? Colors.dark.error : "white"} />
+            {/* Hide controls when preview is visible */}
+            {!previewVisible && (
+                <View style={styles.controls}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={24} color="white" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={handleDownload} style={styles.mainButton} disabled={downloading}>
-                        {downloading && downloadProgress ? (
-                            <Text style={styles.btnText}>{downloadProgress}</Text>
-                        ) : (
-                            <>
-                                <Ionicons name="download-outline" size={20} color="#000" style={{ marginRight: 6 }} />
-                                <Text style={styles.btnText}>Download</Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={() => setShowPreview(true)} style={[styles.mainButton, { backgroundColor: Colors.dark.secondary }]} disabled={downloading}>
-                        <Ionicons name="color-wand-outline" size={20} color="#000" style={{ marginRight: 6 }} />
-                        <Text style={styles.btnText}>Set Wall</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Preview Modal */}
-            <Modal
-                visible={showPreview}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowPreview(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Preview Wallpaper</Text>
-                        <Text style={styles.modalSubtitle}>See how it will look on your device</Text>
-
-                        {/* Device Preview */}
-                        <View style={styles.previewContainer}>
-                            <View style={styles.deviceFrame}>
-                                <Image
-                                    source={{ uri: wallpaper.url }}
-                                    style={styles.previewImage}
-                                    contentFit="cover"
-                                />
-                                {/* Simulated Status Bar */}
-                                <View style={styles.statusBar}>
-                                    <Text style={styles.statusTime}>12:30</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        <Text style={styles.optionTitle}>Set as:</Text>
-
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleSetWallpaper('home')}
-                        >
-                            <Ionicons name="home-outline" size={24} color={Colors.dark.primary} />
-                            <Text style={styles.optionText}>Home Screen</Text>
+                    <View style={styles.actionRow}>
+                        <TouchableOpacity onPress={() => toggleFavorite(wallpaper)} style={styles.iconButton}>
+                            <Ionicons name={isFav ? "heart" : "heart-outline"} size={26} color={isFav ? "#FF375F" : "white"} />
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleSetWallpaper('lock')}
-                        >
-                            <Ionicons name="lock-closed-outline" size={24} color={Colors.dark.primary} />
-                            <Text style={styles.optionText}>Lock Screen</Text>
+                        <TouchableOpacity onPress={handleDownload} style={styles.mainButton} disabled={downloading}>
+                            {downloading && downloadProgress.includes('Download') ? (
+                                <Text style={styles.btnText}>...</Text>
+                            ) : (
+                                <>
+                                    <Ionicons name="download-outline" size={20} color="#000" style={{ marginRight: 6 }} />
+                                    <Text style={styles.btnText}>Download</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleSetWallpaper('both')}
-                        >
-                            <Ionicons name="layers-outline" size={24} color={Colors.dark.primary} />
-                            <Text style={styles.optionText}>Both Screens</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => setShowPreview(false)}
-                        >
-                            <Text style={styles.cancelText}>Cancel</Text>
+                        <TouchableOpacity onPress={handleSetWallpaper} style={[styles.mainButton, { backgroundColor: colors.accent }]} disabled={downloading}>
+                            {downloading && downloadProgress.includes('Setting') ? (
+                                <Text style={styles.btnText}>...</Text>
+                            ) : (
+                                <>
+                                    <Ionicons name="color-wand-outline" size={20} color="#000" style={{ marginRight: 6 }} />
+                                    <Text style={styles.btnText}>Set Wall</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
+            )}
         </View>
     );
 }
@@ -296,7 +309,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 50,
         borderRadius: 25,
-        backgroundColor: Colors.dark.primary,
+        backgroundColor: '#E57697',
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 5,
@@ -305,96 +318,22 @@ const styles = StyleSheet.create({
     btnText: {
         color: '#000',
         fontWeight: '700',
-        fontSize: 16,
-    },
-    modalContainer: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.9)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        width: '90%',
-        backgroundColor: Colors.dark.surface,
-        borderRadius: 20,
-        padding: 20,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: Colors.dark.text,
-        marginBottom: 8,
-    },
-    modalSubtitle: {
         fontSize: 14,
-        color: Colors.dark.textSecondary,
-        marginBottom: 20,
-    },
-    previewContainer: {
-        width: '100%',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    deviceFrame: {
-        width: 180,
-        height: 360,
-        borderRadius: 25,
-        overflow: 'hidden',
-        borderWidth: 3,
-        borderColor: '#333',
-        position: 'relative',
-    },
-    previewImage: {
-        width: '100%',
-        height: '100%',
-    },
-    statusBar: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 30,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    statusTime: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    optionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.dark.text,
-        marginBottom: 12,
-        alignSelf: 'flex-start',
     },
     optionButton: {
-        width: '100%',
+        height: 50,
+        backgroundColor: '#333',
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 10,
+        justifyContent: 'center',
+        paddingHorizontal: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: '#444'
     },
     optionText: {
+        color: 'white',
         fontSize: 16,
-        fontWeight: '600',
-        color: Colors.dark.text,
-        marginLeft: 12,
-    },
-    cancelButton: {
-        marginTop: 10,
-        padding: 12,
-    },
-    cancelText: {
-        color: Colors.dark.textSecondary,
-        fontSize: 16,
-        fontWeight: '600',
-    },
+        fontWeight: '600'
+    }
 });

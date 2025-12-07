@@ -1,23 +1,26 @@
-export const Colors = {
-    dark: {
-        background: '#0a0a0a',
-        surface: '#1c1c1c',
-        primary: '#D4F1F4', // Soft cyan/white
-        secondary: '#75E6DA', // Teal
-        accent: '#189AB4', // Ocean blue
-        text: '#ffffff',
-        textSecondary: '#a1a1a1',
-        border: '#333333',
-        error: '#cf6679',
-    },
-    light: {
-        background: '#ffffff',
-        surface: '#f5f5f5',
-        primary: '#05445E', // Navy
-        secondary: '#189AB4',
-        text: '#000000',
-        textSecondary: '#555555',
-        border: '#e0e0e0',
-        error: '#b00020',
-    }
+export const colors = {
+    primary: '#6C47FF',
+    background: '#000000',
+    surface: '#0F0F0F',
+    text: '#FFFFFF',
+    textSecondary: '#8E8E93',
+    border: '#2C2C2E',
+    accent: '#E57697',
+    success: '#30D158',
+    warning: '#FF9500',
+    error: '#FF3B30',
+
+    // Prism-specific colors
+    premium: '#FFD700',
+    verified: '#4A9FFF',
+    favorite: '#FF375F',
+
+    // Gradient colors
+    gradientStart: '#E57697',
+    gradientEnd: '#6C47FF',
+
+    // Overlay colors
+    overlayLight: 'rgba(255, 255, 255, 0.1)',
+    overlayDark: 'rgba(0, 0, 0, 0.5)',
+    shimmer: '#1A1A1A',
 };

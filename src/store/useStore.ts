@@ -1,109 +1,240 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 import { getWallpapers } from '../services/github';
-import { Wallpaper, WallpaperStore } from '../types';
+import { defaultDarkTheme } from '../theme/themes';
+import { Collection, Notification, SearchFilters, Setup, Theme, UserProfile, Wallpaper } from '../types';
 
-interface State extends WallpaperStore {
-    searchTerm: string;
-    selectedCategory: string;
-    setSearchTerm: (term: string) => void;
-    setSelectedCategory: (category: string) => void;
-    filteredWallpapers: () => Wallpaper[];
-    downloadedIds: string[];
-    markDownloaded: (id: string) => void;
+// Wallpaper Store Slice
+interface WallpaperState {
+    wallpapers: Wallpaper[];
+    isLoading: boolean;
     currentPage: number;
-    hasMorePages: boolean;
-    loadMoreWallpapers: () => Promise<void>;
+    hasMore: boolean;
+    searchFilters: SearchFilters;
+    fetchWallpapers: (page?: number) => Promise<void>;
+    setSearchFilters: (filters: SearchFilters) => void;
+    resetWallpapers: () => void;
 }
 
-export const useStore = create<State>()(
-    persist(
-        (set, get) => ({
-            wallpapers: [],
-            favorites: [],
-            isLoading: false,
-            searchTerm: '', // Text search term
-            selectedCategory: 'All', // Default category
-            downloadedIds: [],
-            currentPage: 1,
-            hasMorePages: true,
+// Favorites Store Slice
+interface FavoritesState {
+    favorites: Wallpaper[];
+    loadFavorites: () => Promise<void>;
+    toggleFavorite: (wallpaper: Wallpaper) => Promise<void>;
+    isFavorite: (id: string) => boolean;
+}
 
-            fetchWallpapers: async () => {
-                set({ isLoading: true, currentPage: 1, wallpapers: [] });
-                const wallpapers = await getWallpapers(1);
-                set({ wallpapers, isLoading: false, hasMorePages: wallpapers.length === 20 });
-            },
+// Collections Store Slice
+interface CollectionsState {
+    collections: Collection[];
+    isLoadingCollections: boolean;
+    fetchCollections: () => Promise<void>;
+}
 
-            loadMoreWallpapers: async () => {
-                const { currentPage, hasMorePages, isLoading } = get();
-                if (isLoading || !hasMorePages) return;
+// Setups Store Slice
+interface SetupsState {
+    setups: Setup[];
+    isLoadingSetups: boolean;
+    fetchSetups: () => Promise<void>;
+}
 
-                set({ isLoading: true });
-                const nextPage = currentPage + 1;
-                const newWallpapers = await getWallpapers(nextPage);
+// User Store Slice
+interface UserState {
+    currentUser: UserProfile | null;
+    isAuthenticated: boolean;
+    signIn: (user: UserProfile) => void;
+    signOut: () => void;
+}
 
-                set((state) => ({
-                    wallpapers: [...state.wallpapers, ...newWallpapers],
-                    currentPage: nextPage,
-                    isLoading: false,
-                    hasMorePages: newWallpapers.length === 20,
-                }));
-            },
+// Notifications Store Slice
+interface NotificationsState {
+    notifications: Notification[];
+    unreadCount: number;
+    addNotification: (notification: Notification) => void;
+    markAsRead: (id: string) => void;
+    clearAll: () => void;
+}
 
-            toggleFavorite: (wallpaper) => {
-                const { favorites } = get();
-                const isFav = favorites.some((f) => f.id === wallpaper.id);
-                if (isFav) {
-                    set({ favorites: favorites.filter((f) => f.id !== wallpaper.id) });
-                } else {
-                    set({ favorites: [...favorites, { ...wallpaper, isFavorite: true }] });
-                }
-            },
+// Theme Store Slice
+interface ThemeState {
+    currentTheme: Theme;
+    isDarkMode: boolean;
+    isAmoledMode: boolean;
+    setTheme: (theme: Theme) => void;
+    toggleDarkMode: () => void;
+    toggleAmoledMode: () => void;
+}
 
-            markDownloaded: (id) => {
-                const { downloadedIds } = get();
-                if (!downloadedIds.includes(id)) {
-                    set({ downloadedIds: [...downloadedIds, id] });
-                }
-            },
+// Combined Store Type
+type Store = WallpaperState &
+    FavoritesState &
+    CollectionsState &
+    SetupsState &
+    UserState &
+    NotificationsState &
+    ThemeState;
 
-            setSearchTerm: (term) => set({ searchTerm: term }),
-            setSelectedCategory: (category) => set({ selectedCategory: category }),
+export const useStore = create<Store>((set, get) => ({
+    // Wallpaper State
+    wallpapers: [],
+    isLoading: false,
+    currentPage: 1,
+    hasMore: true,
+    searchFilters: {},
 
-            filteredWallpapers: () => {
-                const { wallpapers, searchTerm, selectedCategory, favorites } = get();
+    fetchWallpapers: async (page?: number) => {
+        const pageToFetch = page !== undefined ? page : get().currentPage;
+        set({ isLoading: true });
 
-                // Start with category filtering
-                let result = wallpapers;
+        try {
+            const newWallpapers = await getWallpapers(pageToFetch);
 
-                // Filter by selected category first
-                if (selectedCategory === 'Favorites') {
-                    result = favorites;
-                } else if (selectedCategory === 'Trending') {
-                    result = [...wallpapers].sort(() => 0.5 - Math.random());
-                } else if (selectedCategory && selectedCategory !== 'All') {
-                    result = wallpapers.filter(w =>
-                        w.folder.toLowerCase() === selectedCategory.toLowerCase()
-                    );
-                }
-
-                // Then apply text search if present
-                if (searchTerm && searchTerm.trim()) {
-                    const lowerTerm = searchTerm.toLowerCase().trim();
-                    result = result.filter(w =>
-                        w.name.toLowerCase().includes(lowerTerm) ||
-                        w.folder.toLowerCase().includes(lowerTerm)
-                    );
-                }
-
-                return result;
-            },
-        }),
-        {
-            name: 'wallpaper-storage',
-            storage: createJSONStorage(() => AsyncStorage),
-            partialize: (state) => ({ favorites: state.favorites, wallpapers: state.wallpapers, downloadedIds: state.downloadedIds }),
+            if (page === 1) {
+                set({ wallpapers: newWallpapers, currentPage: 1, hasMore: true });
+            } else {
+                set({
+                    wallpapers: [...get().wallpapers, ...newWallpapers],
+                    currentPage: pageToFetch,
+                    hasMore: newWallpapers.length > 0,
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching wallpapers:', error);
+        } finally {
+            set({ isLoading: false });
         }
-    )
-);
+    },
+
+    setSearchFilters: (filters: SearchFilters) => {
+        set({ searchFilters: filters });
+    },
+
+    resetWallpapers: () => {
+        set({ wallpapers: [], currentPage: 1, hasMore: true });
+    },
+
+    // Favorites State
+    favorites: [],
+
+    loadFavorites: async () => {
+        try {
+            const stored = await AsyncStorage.getItem('favorites');
+            if (stored) {
+                set({ favorites: JSON.parse(stored) });
+            }
+        } catch (error) {
+            console.error('Error loading favorites:', error);
+        }
+    },
+
+    toggleFavorite: async (wallpaper: Wallpaper) => {
+        const { favorites } = get();
+        const index = favorites.findIndex((fav) => fav.id === wallpaper.id);
+
+        let newFavorites: Wallpaper[];
+        if (index >= 0) {
+            newFavorites = favorites.filter((_, i) => i !== index);
+        } else {
+            newFavorites = [...favorites, wallpaper];
+        }
+
+        set({ favorites: newFavorites });
+
+        try {
+            await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
+        } catch (error) {
+            console.error('Error saving favorites:', error);
+        }
+    },
+
+    isFavorite: (id: string) => {
+        return get().favorites.some((fav) => fav.id === id);
+    },
+
+    // Collections State
+    collections: [],
+    isLoadingCollections: false,
+
+    fetchCollections: async () => {
+        set({ isLoadingCollections: true });
+        try {
+            // TODO: Implement collections API
+            // For now, return mock data
+            set({ collections: [] });
+        } catch (error) {
+            console.error('Error fetching collections:', error);
+        } finally {
+            set({ isLoadingCollections: false });
+        }
+    },
+
+    // Setups State
+    setups: [],
+    isLoadingSetups: false,
+
+    fetchSetups: async () => {
+        set({ isLoadingSetups: true });
+        try {
+            // TODO: Implement setups API
+            set({ setups: [] });
+        } catch (error) {
+            console.error('Error fetching setups:', error);
+        } finally {
+            set({ isLoadingSetups: false });
+        }
+    },
+
+    // User State
+    currentUser: null,
+    isAuthenticated: false,
+
+    signIn: (user: UserProfile) => {
+        set({ currentUser: user, isAuthenticated: true });
+    },
+
+    signOut: () => {
+        set({ currentUser: null, isAuthenticated: false });
+    },
+
+    // Notifications State
+    notifications: [],
+    unreadCount: 0,
+
+    addNotification: (notification: Notification) => {
+        set({
+            notifications: [notification, ...get().notifications],
+            unreadCount: get().unreadCount + 1,
+        });
+    },
+
+    markAsRead: (id: string) => {
+        const notifications = get().notifications.map((notif) =>
+            notif.id === id ? { ...notif, read: true } : notif
+        );
+        set({
+            notifications,
+            unreadCount: notifications.filter((n) => !n.read).length,
+        });
+    },
+
+    clearAll: () => {
+        set({ notifications: [], unreadCount: 0 });
+    },
+
+    // Theme State
+    currentTheme: defaultDarkTheme,
+    isDarkMode: true,
+    isAmoledMode: false,
+
+    setTheme: (theme: Theme) => {
+        set({ currentTheme: theme, isDarkMode: theme.isDark });
+    },
+
+    toggleDarkMode: () => {
+        set({ isDarkMode: !get().isDarkMode });
+    },
+
+    toggleAmoledMode: () => {
+        set({ isAmoledMode: !get().isAmoledMode });
+    },
+}));
